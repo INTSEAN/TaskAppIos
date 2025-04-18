@@ -14,23 +14,82 @@ class TaskListViewController: UIViewController {
     // The main tasks array initialized with a default value of an empty array.
     var tasks = [Task]()
 
+    // Programmatically created UI elements
+    private var tableViewProgrammatic: UITableView?
+    private var emptyStateLabelProgrammatic: UILabel?
+
+    override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
+        super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
+        setupProgrammaticUI()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
+
+    private func setupProgrammaticUI() {
+        // Create table view
+        let tableView = UITableView()
+        tableView.translatesAutoresizingMaskIntoConstraints = false
+        tableView.separatorInsetReference = .fromAutomaticInsets
+        tableView.separatorInset = UIEdgeInsets(top: 0, left: 48, bottom: 0, right: 0)
+        tableView.register(TaskCell.self, forCellReuseIdentifier: "TaskCell")
+        tableView.dataSource = self
+        tableView.delegate = self
+        view.addSubview(tableView)
+        
+        // Create empty state label
+        let emptyLabel = UILabel()
+        emptyLabel.text = "Tap the \"+\" button to add tasks"
+        emptyLabel.textAlignment = .center
+        emptyLabel.textColor = UIColor.tertiaryLabel
+        emptyLabel.font = UIFont.preferredFont(forTextStyle: .title2)
+        emptyLabel.numberOfLines = 0
+        emptyLabel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(emptyLabel)
+        
+        // Layout constraints for table view
+        NSLayoutConstraint.activate([
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+        
+        // Layout constraints for empty state label
+        NSLayoutConstraint.activate([
+            emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            emptyLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 48),
+            emptyLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -48)
+        ])
+        
+        // Store references
+        self.tableViewProgrammatic = tableView
+        self.emptyStateLabelProgrammatic = emptyLabel
+        
+        // Add navigation bar button for adding tasks
+        navigationItem.title = "Tasks"
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            image: UIImage(systemName: "plus"),
+            style: .plain,
+            target: self,
+            action: #selector(didTapNewTaskButton)
+        )
+    }
+
+    // Then update viewDidLoad to handle both cases
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Hide top cell separator
-        tableView.tableHeaderView = UIView()
+        // If loaded from storyboard
+        if let tableView = tableView {
+            // Hide top cell separator
+            tableView.tableHeaderView = UIView()
 
-        // Set table view data source
-        // Needed for standard table view setup:
-        //    - tableView(numberOfRowsInSection:)
-        //    - tableView(cellForRowAt:)
-        // Also for swipe to delete row:
-        //    - tableView(_:commit:forRowAt:)
-        tableView.dataSource = self
-
-        // Set table view delegate
-        // Needed to detect row selection: tableView(_:didSelectRowAt:)
-        tableView.delegate = self
+            // Set table view data source and delegate
+            tableView.dataSource = self
+            tableView.delegate = self
+        }
     }
 
     // Refresh the tasks list each time the view appears in case any tasks were updated on the other tab.
@@ -42,7 +101,20 @@ class TaskListViewController: UIViewController {
 
     // When the "+" button is tapped, perform the segue with id, "ComposeSegue".
     @IBAction func didTapNewTaskButton(_ sender: Any) {
-        performSegue(withIdentifier: "ComposeSegue", sender: nil)
+        // Create and configure a TaskComposeViewController
+        let taskComposeVC = TaskComposeViewController()
+        
+        // Set up the onComposeTask closure
+        taskComposeVC.onComposeTask = { [weak self] task in
+            task.save()
+            self?.refreshTasks()
+        }
+        
+        // Wrap it in a navigation controller
+        let navController = UINavigationController(rootViewController: taskComposeVC)
+        
+        // Present it modally
+        self.present(navController, animated: true)
     }
 
     // Prepare for navigation to the Task Compose View Controller.
@@ -109,9 +181,18 @@ class TaskListViewController: UIViewController {
         // 3.
         self.tasks = tasks
         // 4.
-        emptyStateLabel.isHidden = !tasks.isEmpty
+        if let emptyStateLabel = emptyStateLabel {
+            emptyStateLabel.isHidden = !tasks.isEmpty
+        } else if let emptyStateLabelProgrammatic = emptyStateLabelProgrammatic {
+            emptyStateLabelProgrammatic.isHidden = !tasks.isEmpty
+        }
+        
         // 5.
-        tableView.reloadSections(IndexSet(integer: 0), with: .automatic)
+        if let tableView = tableView {
+            tableView.reloadSections(IndexSet(integer: 0), with: .automatic)
+        } else if let tableViewProgrammatic = tableViewProgrammatic {
+            tableViewProgrammatic.reloadSections(IndexSet(integer: 0), with: .automatic)
+        }
     }
 }
 
@@ -134,7 +215,16 @@ extension TaskListViewController: UITableViewDataSource {
     // 4. Return the configured cell.
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         // 1.
-        let cell = tableView.dequeueReusableCell(withIdentifier: "TaskCell", for: indexPath) as! TaskCell
+        let cell: TaskCell
+        
+        if tableView === self.tableView {
+            // Storyboard cell
+            cell = tableView.dequeueReusableCell(withIdentifier: "TaskCell", for: indexPath) as! TaskCell
+        } else {
+            // Programmatic cell
+            cell = tableView.dequeueReusableCell(withIdentifier: "TaskCell", for: indexPath) as! TaskCell
+        }
+        
         // 2.
         let task = tasks[indexPath.row]
         // 3.
@@ -175,14 +265,26 @@ extension TaskListViewController: UITableViewDelegate {
     // In this case, the user has tapped an existing task row and we want to segue them to the Compose View Controller to edit the associated task.
     // 1. Deselect the row so the row doesn't stay in the slected state. (This is just a design preference in this case).
     // 2. Get the task associated with the selected row.
-    // 3. Perform the segue to the Compose View Controller (i.e. "ComposeSegue") passing in the selected task for the sender.
-    //    - The sender can be any type and you can use it however you want. In this case we pass in the selected task so we can have easy access to it when preparing for navigation to the Compose View Controller when preparing for the segue in prepare(for:sender)
+    // 3. Create and present the Compose View Controller to edit the task.
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         // 1.
         tableView.deselectRow(at: indexPath, animated: false)
         // 2.
         let selectedTask = tasks[indexPath.row]
         // 3.
-        performSegue(withIdentifier: "ComposeSegue", sender: selectedTask)
+        let taskComposeVC = TaskComposeViewController()
+        taskComposeVC.taskToEdit = selectedTask
+        
+        // Set up the onComposeTask closure
+        taskComposeVC.onComposeTask = { [weak self] task in
+            task.save()
+            self?.refreshTasks()
+        }
+        
+        // Wrap it in a navigation controller
+        let navController = UINavigationController(rootViewController: taskComposeVC)
+        
+        // Present it modally
+        self.present(navController, animated: true)
     }
 }

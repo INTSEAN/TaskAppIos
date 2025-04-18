@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B61F269F2DB1E134001A87BF /* MainTabBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B61F269E2DB1E134001A87BF /* MainTabBarController.swift */; };
 		CB602B9929247359006C6727 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB602B9829247359006C6727 /* AppDelegate.swift */; };
 		CB602B9B29247359006C6727 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB602B9A29247359006C6727 /* SceneDelegate.swift */; };
 		CB602B9D29247359006C6727 /* TaskListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB602B9C29247359006C6727 /* TaskListViewController.swift */; };
@@ -20,6 +21,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		B61F269E2DB1E134001A87BF /* MainTabBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabBarController.swift; sourceTree = "<group>"; };
 		CB602B9529247359006C6727 /* ios101-project7-task.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ios101-project7-task.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CB602B9829247359006C6727 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		CB602B9A29247359006C6727 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -67,14 +69,15 @@
 				CB602B9C29247359006C6727 /* TaskListViewController.swift */,
 				CB602BAC292476F4006C6727 /* TaskCell.swift */,
 				ED7EC37529F0EFD000146345 /* TaskComposeViewController.swift */,
+				B61F269E2DB1E134001A87BF /* MainTabBarController.swift */,
 				CB9D9ED0292483BC00F8F51B /* Task.swift */,
 				EDE386CF29F7892D007E714F /* CalendarViewController.swift */,
-				CB602B9E29247359006C6727 /* Main.storyboard */,
 				CB602BA32924735C006C6727 /* LaunchScreen.storyboard */,
 				CB602B9829247359006C6727 /* AppDelegate.swift */,
 				CB602B9A29247359006C6727 /* SceneDelegate.swift */,
 				CB602BA12924735C006C6727 /* Assets.xcassets */,
 				CB602BA62924735C006C6727 /* Info.plist */,
+				CB602B9E29247359006C6727 /* Main.storyboard */,
 			);
 			path = "ios101-project7-task";
 			sourceTree = "<group>";
@@ -152,6 +155,7 @@
 			files = (
 				EDE386D029F7892D007E714F /* CalendarViewController.swift in Sources */,
 				CB602BAD292476F4006C6727 /* TaskCell.swift in Sources */,
+				B61F269F2DB1E134001A87BF /* MainTabBarController.swift in Sources */,
 				ED7EC37629F0EFD000146345 /* TaskComposeViewController.swift in Sources */,
 				CB602B9D29247359006C6727 /* TaskListViewController.swift in Sources */,
 				CB602B9929247359006C6727 /* AppDelegate.swift in Sources */,

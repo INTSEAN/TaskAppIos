@@ -11,22 +11,120 @@ class TaskCell: UITableViewCell {
     @IBOutlet weak var titleLabel: UILabel!
     @IBOutlet weak var noteLabel: UILabel!
 
+    // Programmatically created UI elements
+    private var titleLabelProgrammatic: UILabel?
+    private var noteLabelProgrammatic: UILabel?
+    private var completeButtonProgrammatic: UIButton?
+
     // The closure called, passing in the associated task, when the "Complete" button is tapped.
-    var onCompleteButtonTapped: ((Task) -> Void)?
+    private var onCompleteButtonTapped: ((Task) -> Void)?
 
     // The task associated with the cell
-    var task: Task!
+    private var task: Task?
+
+    // Override init for programmatic cell creation
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        setupProgrammaticUI()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
+
+    private func setupProgrammaticUI() {
+        // Create a stack view for the cell content
+        let stackView = UIStackView()
+        stackView.axis = .horizontal
+        stackView.spacing = 10
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(stackView)
+
+        // Create button stack
+        let buttonStack = UIStackView()
+        buttonStack.axis = .vertical
+        buttonStack.alignment = .top
+
+        // Create the complete button
+        let button = UIButton(type: .system)
+        button.tintColor = UIColor.tertiaryLabel
+        button.setImage(UIImage(systemName: "circle"), for: .normal)
+        button.setImage(UIImage(systemName: "circle.inset.filled"), for: .selected)
+        button.addTarget(self, action: #selector(didTapCompleteButton), for: .touchUpInside)
+
+        // Create text stack view for title and note
+        let textStack = UIStackView()
+        textStack.axis = .vertical
+        textStack.spacing = 4
+
+        // Create title label
+        let titleLabel = UILabel()
+        titleLabel.font = UIFont.preferredFont(forTextStyle: .body)
+        titleLabel.numberOfLines = 0
+
+        // Create note label
+        let noteLabel = UILabel()
+        noteLabel.font = UIFont.preferredFont(forTextStyle: .footnote)
+        noteLabel.textColor = UIColor.secondaryLabel
+        noteLabel.numberOfLines = 0
+
+        // Add subviews to their respective stack views
+        buttonStack.addArrangedSubview(button)
+        textStack.addArrangedSubview(titleLabel)
+        textStack.addArrangedSubview(noteLabel)
+
+        stackView.addArrangedSubview(buttonStack)
+        stackView.addArrangedSubview(textStack)
+
+        // Set up constraints for the main stack view
+        NSLayoutConstraint.activate([
+            stackView.leadingAnchor.constraint(equalTo: contentView.layoutMarginsGuide.leadingAnchor),
+            stackView.trailingAnchor.constraint(equalTo: contentView.layoutMarginsGuide.trailingAnchor),
+            stackView.topAnchor.constraint(equalTo: contentView.layoutMarginsGuide.topAnchor),
+            stackView.bottomAnchor.constraint(equalTo: contentView.layoutMarginsGuide.bottomAnchor)
+        ])
+
+        // Store references to the UI elements
+        self.completeButtonProgrammatic = button
+        self.titleLabelProgrammatic = titleLabel
+        self.noteLabelProgrammatic = noteLabel
+    }
+
+    // Configure the cell with a task
+    func configure(with task: Task, onCompleteButtonTapped: @escaping (Task) -> Void) {
+        self.task = task
+        self.onCompleteButtonTapped = onCompleteButtonTapped
+
+        if titleLabel != nil {
+            // Storyboard UI
+            titleLabel.text = task.title
+            noteLabel.text = task.note
+            completeButton.isSelected = task.isComplete
+        } else if let titleLabelProg = titleLabelProgrammatic,
+                  let noteLabelProg = noteLabelProgrammatic,
+                  let completeButtonProg = completeButtonProgrammatic {
+            // Programmatic UI
+            titleLabelProg.text = task.title
+            noteLabelProg.text = task.note
+            completeButtonProg.isSelected = task.isComplete
+        }
+    }
 
     // The function called when the "Complete" button is tapped.
     // 1. Toggle the isComplete boolean state of the task
     // 2. Update the cell's UI with the current task state
     // 3. Call the `onCompleteButtonTapped` closure, passing in the current task so other view controllers can react to the change in task completed status.
     @IBAction func didTapCompleteButton(_ sender: UIButton) {
-        // 1.
-        task.isComplete = !task.isComplete
-        // 2.
-        update(with: task)
-        // 3.
+        guard var task = task else { return }
+
+        task.isComplete.toggle()
+
+        if sender == completeButton {
+            completeButton.isSelected = task.isComplete
+        } else if let completeButtonProg = completeButtonProgrammatic {
+            completeButtonProg.isSelected = task.isComplete
+        }
+
         onCompleteButtonTapped?(task)
     }
 

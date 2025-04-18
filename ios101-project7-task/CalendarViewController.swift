@@ -17,43 +17,37 @@ class CalendarViewController: UIViewController {
     @IBOutlet private weak var calendarContainerView: UIView!
     @IBOutlet private weak var tableView: UITableView!
 
+    override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
+        super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
+        
+        // We need to set up the programmatic UI before viewDidLoad is called
+        setupProgrammaticUI()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        // When loaded from storyboard, viewDidLoad will handle setup
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // MARK: - Setup the Table View
-        // 1. Set table view data source. Needed for standard table view setup:
-        //    - tableView(numberOfRowsInSection:) -> How many rows to display
-        //    - tableView(cellForRowAt:) -> Create and configure a cell for each row
-        // 2. Hide the top cell separator. (Just a UI design choice for this case)
-        // 3. Inform the view controller what the main scroll view is, in this case it's the table view.
-        //    - The view controller will make sure the table view has the correct content insets to clear navigation and tab bars.
-        //    - It will also make the otherwise clear nav and tab bars opaque when content scrolls behind it.
-        //    - Typically, it isn't necessary to set this explicitly, but it can be sometimes when the table view is not a top level UI element in the view hierarchy. In this case, it's in a stack view below the calendar view and without this set, the tab bar wasn't adjusting to scrolling content as expected.
-        // ------
+        // Skip the rest of this method if we created the UI programmatically
+        // This prevents trying to use the IBOutlets which would be nil
+        if calendarContainerView == nil {
+            return
+        }
 
-        // 1.
+        // This code will only run when loaded from storyboard
+        // MARK: - Setup the Table View
         tableView.dataSource = self
-        // 2.
         tableView.tableHeaderView = UIView()
-        // 3.
         setContentScrollView(tableView)
 
         // MARK: - Create and add Calendar View to view hierarchy
-        // For whatever reason, the UICalendarView can't be added via storyboard. so we'll need to create it, add it to the view heirarchy and setup auto layout constraints programmatically.
-        // 1. Create a calendar view and assign it to our view controller's associated property.
-        // 2. Set `translatesAutoresizingMaskIntoConstraints` false since we'll be using autolayout.
-        //    - ⚠️ This is necessary anytime you add programatic autolayout constraints.
-        // 3. Add the calendar view to the view hierarchy. In this case, as a subview of the calendar container view.
-        // 4. Create and activate auto layout constraints pinning the calendar view to the calendar container view on all sides.
-        // ------
-
-        // 1.
         self.calendarView = UICalendarView()
-        // 2.
         calendarView.translatesAutoresizingMaskIntoConstraints = false
-        // 3.
         calendarContainerView.addSubview(calendarView)
-        // 4.
         NSLayoutConstraint.activate([
             calendarView.leadingAnchor.constraint(equalTo: calendarContainerView.leadingAnchor),
             calendarView.topAnchor.constraint(equalTo: calendarContainerView.topAnchor),
@@ -62,40 +56,16 @@ class CalendarViewController: UIViewController {
         ])
 
         // MARK: - Setup the Calendar View
-        // 1. Set the delegate for the calendar view
-        //    - Needed for the `calendarView(_:decorationFor:)` delegate method to set a decoration for a given calendar date.
-        // 2. Set the delegate for the calendar view's single date selection behavior.
-        //    - Needed for the `dateSelection(_:didSelectDate:)` delegate method to react to a user selecting a given calendar date.
-        // ------
-
-        // 1.
         calendarView.delegate = self
-        // 2.
         let dateSelection = UICalendarSelectionSingleDate(delegate: self)
         calendarView.selectionBehavior = dateSelection
 
         // MARK: - Set initial calendar selection
-        // If there are tasks for today's date, then select today's date on the calendar.
-        // 1. Get and update the saved tasks array.
-        // 2. Get the date components that represent today's date.
-        //    - Calendar View works mostly with DateComponents instead of Date, but we can easily convert back and fourth as needed.
-        // 3. Use our filterTasks(for dateComponents:) helper method to filter the tasks array down to only tasks with a due date of today (if any exist).
-        // 4. If there are any tasks with today as the due date...
-        //    i. Get the calendar's selection property (we need to cast to the specific type of selection, i.e. UICalendarSelectionSingleDate)
-        //    ii. Set the calendar's selected date by calling the setSelected(_:animated:) method and passing in the date components for today.
-        // ---
-
-        // 1.
         tasks = Task.getTasks()
-        // 2.
         let todayComponents = Calendar.current.dateComponents([.year, .month, .weekOfMonth, .day], from: Date())
-        // 3.
         let todayTasks = filterTasks(for: todayComponents)
-        // 4.
         if !todayTasks.isEmpty {
-            // i.
             let selection = calendarView.selectionBehavior as? UICalendarSelectionSingleDate
-            // ii.
             selection?.setSelected(todayComponents, animated: false)
         }
     }
@@ -173,6 +143,84 @@ class CalendarViewController: UIViewController {
         calendarView.reloadDecorations(forDateComponents: taskDueDateComponents, animated: false)
         // 8.
         tableView.reloadSections(IndexSet(integer: 0), with: .automatic)
+    }
+
+    // Update the setupProgrammaticUI method
+    private func setupProgrammaticUI() {
+        // Create a stack view to hold our components
+        let stackView = UIStackView()
+        stackView.axis = .vertical
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Create calendar container view
+        let containerView = UIView()
+        containerView.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Create separator view
+        let separatorView = UIView()
+        separatorView.backgroundColor = UIColor.separator
+        separatorView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            separatorView.heightAnchor.constraint(equalToConstant: 1)
+        ])
+        
+        // Create table view
+        let tableViewProgrammatic = UITableView(frame: .zero, style: .insetGrouped)
+        tableViewProgrammatic.translatesAutoresizingMaskIntoConstraints = false
+        tableViewProgrammatic.separatorInset = UIEdgeInsets(top: 0, left: 48, bottom: 0, right: 0)
+        tableViewProgrammatic.dataSource = self
+        tableViewProgrammatic.register(TaskCell.self, forCellReuseIdentifier: "TaskCell")
+        tableViewProgrammatic.tableHeaderView = UIView()
+        
+        // Create and add calendar view
+        let calView = UICalendarView()
+        calView.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(calView)
+        
+        NSLayoutConstraint.activate([
+            calView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            calView.topAnchor.constraint(equalTo: containerView.topAnchor),
+            calView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            calView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+        ])
+        
+        // Add views to stack view
+        stackView.addArrangedSubview(containerView)
+        stackView.addArrangedSubview(separatorView)
+        stackView.addArrangedSubview(tableViewProgrammatic)
+        
+        // Add constraints for container and table height ratio
+        NSLayoutConstraint.activate([
+            tableViewProgrammatic.heightAnchor.constraint(equalTo: containerView.heightAnchor, multiplier: 0.55)
+        ])
+        
+        // Add stack view to main view and constrain it
+        view.addSubview(stackView)
+        NSLayoutConstraint.activate([
+            stackView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            stackView.topAnchor.constraint(equalTo: view.topAnchor),
+            stackView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            stackView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+        
+        // Store references to our UI elements
+        self.calendarView = calView
+        self.tableView = tableViewProgrammatic
+        setContentScrollView(tableViewProgrammatic)
+        
+        // Setup calendar view
+        calendarView.delegate = self
+        let dateSelection = UICalendarSelectionSingleDate(delegate: self)
+        calendarView.selectionBehavior = dateSelection
+        
+        // Initialize tasks and set initial selection
+        tasks = Task.getTasks()
+        let todayComponents = Calendar.current.dateComponents([.year, .month, .weekOfMonth, .day], from: Date())
+        let todayTasks = filterTasks(for: todayComponents)
+        if !todayTasks.isEmpty {
+            let selection = calendarView.selectionBehavior as? UICalendarSelectionSingleDate
+            selection?.setSelected(todayComponents, animated: false)
+        }
     }
 }
 

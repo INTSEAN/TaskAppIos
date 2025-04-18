@@ -6,106 +6,152 @@ import UIKit
 
 class TaskComposeViewController: UIViewController {
 
+    // IBOutlets
     @IBOutlet weak var titleField: UITextField!
     @IBOutlet weak var noteField: UITextField!
-
-    // A UI element that allows users to pick a date.
     @IBOutlet weak var datePicker: UIDatePicker!
 
-    // The optional task to edit.
-    // If a task is present we're in "Edit Task" mode
-    // Otherwise we're in "New Task" mode
+    // The onComposeTask closure is called when a task is created or edited.
+    var onComposeTask: ((Task) -> Void)?
+
+    // The task to edit if this view controller is being used to edit an existing task.
     var taskToEdit: Task?
 
-    // When a new task is created (or an existing task is edited), this closure is called
-    // passing in the task as an argument so it can be used by whoever presented the TaskComposeViewController.
-    var onComposeTask: ((Task) -> Void)? = nil
+    // Programmatically created UI elements
+    private var titleFieldProgrammatic: UITextField!
+    private var noteFieldProgrammatic: UITextField!
+    private var datePickerProgrammatic: UIDatePicker!
 
-    // When the view loads, do initial setup for the view controller.
-    // 1. If a task was passed in to edit, set all the fields with the "task to edit" properties.
-    // 2. Set the title to "Edit Task" in this case.
-    //     - `self.title` refers to the title of the view controller and will appear in the navigation bar title.
-    //     - The default navigation bar title for this screen has been set in storyboard (i.e. "New Task")
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // 1.
-        if let task = taskToEdit {
-            titleField.text = task.title
-            noteField.text = task.note
-            datePicker.date = task.dueDate
+        // If we're creating the view programmatically (not from storyboard)
+        if titleField == nil {
+            setupProgrammaticUI()
+        }
 
-            // 2.
-            self.title = "Edit Task"
+        // Set up the view title, task edit values and navigation bar buttons
+        configureWithTask()
+    }
+
+    private func setupProgrammaticUI() {
+        // Set up title field
+        titleFieldProgrammatic = UITextField()
+        titleFieldProgrammatic.placeholder = "Title"
+        titleFieldProgrammatic.borderStyle = .roundedRect
+        titleFieldProgrammatic.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(titleFieldProgrammatic)
+
+        // Set up note field
+        noteFieldProgrammatic = UITextField()
+        noteFieldProgrammatic.placeholder = "Description"
+        noteFieldProgrammatic.borderStyle = .roundedRect
+        noteFieldProgrammatic.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(noteFieldProgrammatic)
+
+        // Due date label
+        let dateLabel = UILabel()
+        dateLabel.text = "Due Date:"
+        dateLabel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(dateLabel)
+
+        // Set up date picker
+        datePickerProgrammatic = UIDatePicker()
+        datePickerProgrammatic.datePickerMode = .date
+        datePickerProgrammatic.translatesAutoresizingMaskIntoConstraints = false
+        if #available(iOS 13.4, *) {
+            datePickerProgrammatic.preferredDatePickerStyle = .wheels
+        }
+        view.addSubview(datePickerProgrammatic)
+
+        // Set up constraints
+        NSLayoutConstraint.activate([
+            // Title field constraints
+            titleFieldProgrammatic.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
+            titleFieldProgrammatic.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            titleFieldProgrammatic.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+
+            // Note field constraints
+            noteFieldProgrammatic.topAnchor.constraint(equalTo: titleFieldProgrammatic.bottomAnchor, constant: 8),
+            noteFieldProgrammatic.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            noteFieldProgrammatic.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+
+            // Date label constraints
+            dateLabel.topAnchor.constraint(equalTo: noteFieldProgrammatic.bottomAnchor, constant: 16),
+            dateLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+
+            // Date picker constraints
+            datePickerProgrammatic.topAnchor.constraint(equalTo: dateLabel.topAnchor),
+            datePickerProgrammatic.leadingAnchor.constraint(equalTo: dateLabel.trailingAnchor, constant: 8),
+            datePickerProgrammatic.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16)
+        ])
+
+        // Set up the navigation bar buttons
+        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Cancel", style: .plain, target: self, action: #selector(didTapCancelButton))
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Done", style: .done, target: self, action: #selector(didTapDoneButton))
+    }
+
+    private func configureWithTask() {
+        // Set the title based on whether we're creating a new task or editing an existing task
+        title = taskToEdit != nil ? "Edit Task" : "New Task"
+
+        // If we're editing a task, set the title, note and due date values
+        if let task = taskToEdit {
+            // Use the proper UI elements based on where they came from
+            if titleField != nil {
+                // From storyboard
+                titleField.text = task.title
+                noteField.text = task.note
+                datePicker.date = task.dueDate
+            } else {
+                // Programmatically created
+                titleFieldProgrammatic.text = task.title
+                noteFieldProgrammatic.text = task.note
+                datePickerProgrammatic.date = task.dueDate
+            }
         }
     }
 
-    // The function called when the "Done" button is tapped.
-    // 1. Make sure we have non-nil text and the text isn't empty.
-    //    i. If it's nil or empty, present an alert prompting the user to enter a title.
-    //    ii. Exit the funtion (i.e. return).
-    // 2. Create a variable to hold the created or edited task
-    // 3. If a "task to edit" is present, we're editing an existing task...
-    //    i. Set the task variable as the "task to edit".
-    //    ii. Update the task's properties based on the current values of the text and date fields.
-    // 4. If NO "task to edit" is present, we're creating a new task. Set the task variable with a newly created task.
-    // 5. Call the "onComposeTask" closure passing in the new or edited task.
-    // 6. Dismiss the TaskComposeViewController.
+    @IBAction func didTapCancelButton(_ sender: Any) {
+        // Dismiss the view controller without creating or editing a task
+        dismiss(animated: true)
+    }
+
     @IBAction func didTapDoneButton(_ sender: Any) {
-        // 1.
-        guard let title = titleField.text,
-              !title.isEmpty
-        else {
-            // i.
-            presentAlert(title: "Oops...", message: "Make sure to add a title!")
-            // ii.
+        // Check which UI elements to use
+        let titleText: String
+        let noteText: String
+        let date: Date
+
+        if titleField != nil {
+            // Using storyboard elements
+            titleText = titleField.text ?? ""
+            noteText = noteField.text ?? ""
+            date = datePicker.date
+        } else {
+            // Using programmatic elements
+            titleText = titleFieldProgrammatic.text ?? ""
+            noteText = noteFieldProgrammatic.text ?? ""
+            date = datePickerProgrammatic.date
+        }
+
+        // Return early if title is empty
+        guard !titleText.isEmpty else {
             return
         }
-        // 2.
-        var task: Task
-        // 3.
-        if let editTask = taskToEdit {
-            // i.
-            task = editTask
-            // ii.
-            task.title = title
-            task.note = noteField.text
-            task.dueDate = datePicker.date
-        } else {
-            // 4.
-            task = Task(title: title,
-                        note: noteField.text,
-                        dueDate: datePicker.date)
-        }
-        // 5.
+
+        // Get the current task or create a new one
+        var task = taskToEdit ?? Task(title: titleText)
+
+        // Set the title, note and due date values
+        task.title = titleText
+        task.note = noteText.isEmpty ? nil : noteText
+        task.dueDate = date
+
+        // Call the onComposeTask closure to create or edit the task
         onComposeTask?(task)
-        // 6.
-        dismiss(animated: true)
-    }
 
-    // The cancel button was tapped.
-    @IBAction func didTapCancelButton(_ sender: Any) {
-        // Dismiss the TaskComposeViewController.
+        // Dismiss the view controller
         dismiss(animated: true)
-    }
-
-    // A helper method to present an alert given a title and message.
-    // 1. Create an Alert Controller instance with, title, message and alert style.
-    // 2. Create an Alert Action (i.e. an alert button)
-    //    - You could add an action (i.e. closure) to be called when the user taps the associated button.
-    // 3. Add the action to the alert controller
-    // 4. Present the alert
-    private func presentAlert(title: String, message: String) {
-        // 1.
-        let alertController = UIAlertController(
-            title: title,
-            message: message,
-            preferredStyle: .alert)
-        // 2.
-        let okAction = UIAlertAction(title: "OK", style: .default)
-        // 3.
-        alertController.addAction(okAction)
-        // 4.
-        present(alertController, animated: true)
     }
 }
