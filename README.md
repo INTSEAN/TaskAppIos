@@ -30,6 +30,12 @@ The following **additional** features are implemented:
 
 ## Video Walkthrough
 
+Here's a walkthrough of implemented user stories:
+
+![Video Walkthrough](Simulator%20Screen%20Recording%20-%20iPhone%2016%20Pro%20-%202025-04-17%20at%2021.41.46.mp4)
+
+Note: If the video above doesn't play directly in GitHub, you can download it to view locally.
+
 ## Notes
 
 Challenges encountered while building the app:
